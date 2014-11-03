@@ -10,5 +10,10 @@ Kibana.configure do |config|
 end
 
 map '/kibana' do
+  use Rack::Config do |env| do
+    env[ActionDispatch::Cookies::TOKEN_KEY] = Rails.application.config.secret_key_base
+  end
+  use ActionDispatch::Cookies
+  use ActionDispatch::Session::CookieStore, key: Rails.application.config.session_options[:key]
   run Kibana::Rack::Web
 end

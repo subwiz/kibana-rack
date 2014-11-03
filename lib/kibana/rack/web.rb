@@ -19,6 +19,23 @@ module Kibana
           render_not_found unless params[:index] == settings.kibana_index
         end
 
+        def account_index
+          session[:account_dash]
+        end  
+
+        def patch_alias_response
+          a = proxy_es_request
+          unless a[2].nil?
+            content_length = a[2].length
+            a[2].gsub!("#{account_index}-","logstash-")
+            headers = a[1]
+            new_headers = headers
+            new_headers[:content_length] = a[2].length.to_s
+            a[1] = new_headers
+          end
+          a
+        end
+
         def proxy
           es_host = settings.elasticsearch_host
           es_port = settings.elasticsearch_port
@@ -30,7 +47,8 @@ module Kibana
 
           proxy_method = request.request_method.downcase.to_sym
           proxy_response = proxy.send(proxy_method) do |proxy_request|
-            proxy_request.url(request.path_info)
+            req_url = request.path_info.gsub("logstash-","#{account_index}-")
+            proxy_request.url(req_url)
             proxy_request.headers['Content-Type'] = 'application/json'
             proxy_request.params = env['rack.request.query_hash']
             proxy_request.body = request.body.read if [:post, :put].include?(proxy_method)
@@ -42,6 +60,10 @@ module Kibana
         def render_not_found
           halt(404, '<h1>Not Found</h1>')
         end
+      end
+
+      before do
+        render_not_found if account_index.nil?
       end
 
       get '/' do
@@ -66,7 +88,7 @@ module Kibana
       end
 
       route(:delete, :get, :post, :put, '/_aliases') do
-        proxy_es_request
+        patch_alias_response
       end
 
       route(:delete, :get, :post, :put, '/_nodes') do
@@ -74,7 +96,7 @@ module Kibana
       end
 
       route(:delete, :get, :post, :put, '/:index/_aliases') do
-        proxy_es_request
+        patch_alias_response
       end
 
       route(:delete, :get, :post, :put, '/:index/_mapping') do
