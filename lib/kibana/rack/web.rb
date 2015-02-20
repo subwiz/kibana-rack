@@ -27,7 +27,7 @@ module Kibana
           a = proxy_es_request
           unless a[2].nil?
             content_length = a[2].length
-            a[2].gsub!("#{account_index}-","logstash-")
+            a[2].gsub!(account_index,"freshlogs")
             headers = a[1]
             new_headers = headers
             new_headers[:content_length] = a[2].length.to_s
@@ -47,7 +47,7 @@ module Kibana
 
           proxy_method = request.request_method.downcase.to_sym
           proxy_response = proxy.send(proxy_method) do |proxy_request|
-            req_url = request.path_info.gsub("logstash-","#{account_index}-")
+            req_url = request.path_info.gsub("freshlogs",account_index)
             proxy_request.url(req_url)
             proxy_request.headers['Content-Type'] = 'application/json'
             proxy_request.params = env['rack.request.query_hash']
@@ -87,40 +87,60 @@ module Kibana
         erb template
       end
 
-      route(:delete, :get, :post, :put, '/_aliases') do
+      route(:get, :post, '/_aliases') do
         patch_alias_response
       end
 
-      route(:delete, :get, :post, :put, '/_nodes') do
+      route(:get, :post, '/_nodes') do
         proxy_es_request
       end
 
-      route(:delete, :get, :post, :put, '/:index/_aliases') do
+      route(:get, :post, '/:index/_aliases') do
         patch_alias_response
       end
 
-      route(:delete, :get, :post, :put, '/:index/_mapping') do
+      route(:get, :post, '/:index/_mapping') do
         proxy_es_request
       end
 
-      route(:delete, :get, :post, :put, '/:index/_search') do
+      route(:get, :post, '/:index/_search') do
         proxy_es_request
       end
 
-      route(:delete, :get, :post, :put, '/:index/temp') do
-        validate_kibana_index_name
-        proxy_es_request
-      end
+      # route(:delete, :get, :post, :put, '/_aliases') do
+      #   patch_alias_response
+      # end
 
-      route(:delete, :get, :post, :put, '/:index/temp/:name') do
-        validate_kibana_index_name
-        proxy_es_request
-      end
+      # route(:delete, :get, :post, :put, '/_nodes') do
+      #   proxy_es_request
+      # end
 
-      route(:delete, :get, :post, :put, '/:index/dashboard/:dashboard') do
-        validate_kibana_index_name
-        proxy_es_request
-      end
+      # route(:delete, :get, :post, :put, '/:index/_aliases') do
+      #   patch_alias_response
+      # end
+
+      # route(:delete, :get, :post, :put, '/:index/_mapping') do
+      #   proxy_es_request
+      # end
+
+      # route(:delete, :get, :post, :put, '/:index/_search') do
+      #   proxy_es_request
+      # end
+
+      # route(:delete, :get, :post, :put, '/:index/temp') do
+      #   validate_kibana_index_name
+      #   proxy_es_request
+      # end
+
+      # route(:delete, :get, :post, :put, '/:index/temp/:name') do
+      #   validate_kibana_index_name
+      #   proxy_es_request
+      # end
+
+      # route(:delete, :get, :post, :put, '/:index/dashboard/:dashboard') do
+      #   validate_kibana_index_name
+      #   proxy_es_request
+      # end
     end
   end
 end
